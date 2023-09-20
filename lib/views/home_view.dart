@@ -13,13 +13,17 @@ class HomeViewScreen extends StatefulWidget {
 }
 
 class _HomeViewScreenState extends State<HomeViewScreen> {
-  int lastId = 0;
+  int lastId = 0; //lastId değişkeni başta 0
+
+  SqfliteDatabaseHelper dataHelper = SqfliteDatabaseHelper.instance;
+
   @override
   void initState() {
     UserDataBaseService.instance.open();
     SqfliteDatabaseHelper.instance.getLastUserID().then((value) {
       setState(() {
-        lastId = int.parse(value);
+        lastId = int.parse(
+            value); //burda databaseden aldığımız son kullanıcı ıdsini lastId değişkenine verdik
       });
     });
 
@@ -28,8 +32,6 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    //var date = DateTime.now();
-
     TextEditingController nameController = TextEditingController();
     TextEditingController idController = TextEditingController();
     TextEditingController passwordController = TextEditingController();
@@ -37,12 +39,11 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
 
     Future<List<UserModel>> getAllUsers =
         SqfliteDatabaseHelper.instance.getAllUsers();
-    idController.text = "${lastId + 1}";
 
-    //Future getUser = SqfliteDatabaseHelper.instance.getUser(idController.text);
+    idController.text =
+        "${lastId + 1}"; //ıd gösteren Textfielda gelen lastId yi deklare ettik
 
-    var dataHelper = SqfliteDatabaseHelper.instance;
-
+    //database e user bilgilerini göndermek için method oluşturduk
     void addUserToDb() {
       UserModel user = UserModel(
           id: idController.text,
@@ -135,7 +136,7 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
                                 onPressed: () {
                                   setState(() {
                                     addUserToDb();
-                                    lastId++;
+                                    lastId++; //lastID bir future döndüğü için burda manuel olarak eklediğimiz her kullanıcı sonrası ıd yi arttırdık yoksa sabit kalıyor
                                     Navigator.pop(context);
                                   });
                                 },
