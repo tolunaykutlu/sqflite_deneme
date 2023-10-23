@@ -18,7 +18,7 @@ class SqfliteDatabaseHelper {
     return openDatabase(join(await getDatabasesPath(), "usersData.db"),
         onCreate: (db, version) async {
       await db.execute(
-        "CREATE TABLE $tableName ($columnId TEXT PRIMARY KEY, $columnName TEXT, $columnGender TEXT, $columnPassword TEXT)",
+        "CREATE TABLE $tableName ($columnId INTEGER PRIMARY KEY, $columnName TEXT, $columnGender TEXT, $columnPassword TEXT)",
       );
     }, version: 1);
   }
@@ -30,7 +30,6 @@ class SqfliteDatabaseHelper {
     try {
       await db.insert(tableName, user.toMap()).then((value) {
         userId = value;
-        print(userId);
       });
     } catch (e) {
       //print(e);
@@ -42,35 +41,72 @@ class SqfliteDatabaseHelper {
 //son eklene userIdsini alıp işlem yapmak için
   Future<String> getLastUserID() async {
     Database db = await SqfliteDatabaseHelper.instance.getDataBase();
-    var userId = await db.rawQuery(
-        'SELECT $columnId FROM $tableName ORDER BY $columnId DESC LIMIT 1');
-    String lastUserId = userId[0]["id"].toString();
-    return lastUserId;
+    String lastUserId;
+
+    var userIds = await db.rawQuery(
+        'SELECT $columnId FROM $tableName ORDER BY CAST($columnId AS INTEGER) DESC'); //Cast diyerek columnıd içindeki değerleri integer artan değer olarak sıralar
+
+    if (userIds.isNotEmpty) {
+      lastUserId = userIds[0]["id"].toString();
+    } else {
+      // Handle the case when the table is empty
+      lastUserId = '0';
+    }
+    return lastUserId.toString();
+  }
+
+  Future getUserById(
+    int id,
+  ) async {
+    final db = await getDataBase();
+
+    await db.rawQuery("SELECT * FROM $tableName WHERE $columnId= '$id'").then(
+      (value) {
+        return UserModel(
+            id: int.parse(value[0]["id"].toString()),
+            name: value[0]["name"].toString(),
+            gender: value[0]["gender"].toString(),
+            password: value[0]["password"].toString());
+      },
+    );
+
+    /* if (user.isNotEmpty) {
+      return UserModel(
+        id: int.parse(user[0]["id"]),
+        name: user[0]["name"],
+        password: user[0]["password"],
+        gender: user[0]["gender"],
+      );
+    } else {
+      throw Exception(
+          "User not found"); // Handle the case when no user is found
+    } */
   }
 
   //sinlge user gösterim
-  Future getUser(String userId) async {
+  /* Future getSingleUser() async {
+    int id = 1;
     Database db = await getDataBase();
-    List<Map<String, dynamic>> user =
-        await db.rawQuery("SELECT * FROM $tableName WHERE id = $userId");
-    if (user.length == 1) {
-      return UserModel(
-          id: user[0]["id"],
-          name: user[0]["name"],
-          password: user[0]["password"],
-          gender: user[0]["gender"]);
-    } else {
-      return user;
-    }
-  }
+
+    var user = await db.query(tableName, where: columnId, whereArgs: [id]);
+
+    print(user);
+
+    return null; /* UserModel(
+        id: int.parse(user[0]["id"]),
+        name: user[0]["name"],
+        password: user[0]["password"],
+        gender: user[0]["gender"]); */
+  } */
 
   //tüm datayı göstermek için
   Future<List<UserModel>> getAllUsers() async {
     Database db = await getDataBase();
     List<Map<String, dynamic>> usersMap = await db.query(tableName);
+
     return List.generate(usersMap.length, (index) {
       return UserModel(
-          id: usersMap[index]["id"],
+          id: int.parse(usersMap[index]["id"]),
           name: usersMap[index]["name"],
           password: usersMap[index]["password"],
           gender: usersMap[index]["gender"]);
@@ -86,8 +122,14 @@ class SqfliteDatabaseHelper {
   }
 
   //delete
-  Future<void> deleteUser(String userId) async {
+  Future<void> deleteUser(int userId) async {
     Database db = await getDataBase();
     await db.rawDelete("DELETE FROM $tableName WHERE id = '$userId'");
+  }
+
+  Future<void> deleteAllData() async {
+    //clear data
+    Database db = await getDataBase();
+    await db.rawDelete('DELETE FROM $tableName');
   }
 }
